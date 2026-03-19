@@ -1,6 +1,5 @@
 
 const Database = {
-    // Hàm khởi tạo dữ liệu mẫu nếu chưa có
     init() {
        
         if (!localStorage.getItem('lib_users')) {

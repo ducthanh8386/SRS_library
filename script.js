@@ -1,14 +1,10 @@
-// ==========================================
-// KHỞI TẠO DỮ LIỆU ĐỘNG (BỔ SUNG THỂ LOẠI)
-// ==========================================
+
 if (!localStorage.getItem('lib_categories')) {
-    const defaultCategories = ['Toán cao cấp', 'Lập trình', 'Vật lý', 'Tâm lý', 'Văn học', 'Khác'];
+    const defaultCategories = ['Toán cao cấp', 'Lập trình', 'Vật lý', 'Tâm lý', 'Văn học', 'Khoa học', 'Tiểu thuyết'];
     localStorage.setItem('lib_categories', JSON.stringify(defaultCategories));
 }
 
-// ==========================================
-// XỬ LÝ XÁC THỰC (ĐĂNG NHẬP, ĐĂNG KÝ, QUÊN MK)
-// ==========================================
+
 const authController = {
     toggleForm(formType) {
         document.getElementById('login-form').classList.toggle('hidden', formType !== 'login');
@@ -68,9 +64,9 @@ const authController = {
     }
 };
 
-// ==========================================
-// ĐIỀU KHIỂN NGHIỆP VỤ (CHỨC NĂNG CHÍNH CỦA APP)
-// ==========================================
+
+// ĐIỀU KHIỂN NGHIỆP VỤ 
+
 const appController = {
     renderApp() {
         const user = JSON.parse(sessionStorage.getItem('current_user'));
@@ -91,8 +87,6 @@ const appController = {
         const menu = document.getElementById('menu-list');
         let items = [];
 
-        // Đã bổ sung UC004: Đổi mật khẩu cho TẤT CẢ các Role
-        // Đã bổ sung UC01X: Quản lý loại sách cho Thủ thư
         if (role === 'READER') {
             items = [
                 ['🏠 Trang chủ (Xem Sách)', 'viewBooks'], 
@@ -102,12 +96,13 @@ const appController = {
             this.viewBooks();
         } else if (role === 'LIBRARIAN') {
             items = [
+                ['🔔 Thông báo', 'viewNotifications'], 
                 ['🏷️ Quản lý loại sách', 'manageCategories'], 
                 ['📚 Quản lý kho sách', 'manageBooks'], 
                 ['👥 Duyệt mượn sách', 'manageReaders'], 
                 ['🔒 Đổi mật khẩu', 'changePassword']
             ];
-            this.manageBooks();
+            this.viewNotifications(); // Khởi động hiển thị tab Thông báo đầu tiên
         } else if (role === 'ADMIN') {
             items = [
                 ['🛡️ Quản lý tài khoản', 'manageUsers'], 
@@ -122,7 +117,6 @@ const appController = {
         `).join('');
     },
 
-    // HÀM HỖ TRỢ: Lấy danh sách thể loại sách từ LocalStorage
     getCategoryOptions(showAllOption = false) {
         let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
         let html = showAllOption ? '<option value="all">Tất cả thể loại</option>' : '';
@@ -130,9 +124,7 @@ const appController = {
         return html;
     },
 
-    // ================= CHỨC NĂNG DÙNG CHUNG =================
-
-    // UC004: Thay đổi mật khẩu
+    // CHỨC NĂNG DÙNG CHUNG 
     changePassword() {
         document.getElementById('page-title').innerText = "Thay Đổi Mật Khẩu";
         let html = `
@@ -175,11 +167,9 @@ const appController = {
         document.getElementById('confirm-pass').value = '';
     },
 
-
-    // ================= CHỨC NĂNG CỦA ĐỘC GIẢ =================
+    // ĐỘC GIẢ 
     viewBooks() {
         document.getElementById('page-title').innerText = "Danh Mục Sách Thư Viện";
-        
         let html = `
             <div class="search-panel">
                 <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tên sách..." onkeyup="appController.filterBooks()">
@@ -190,7 +180,6 @@ const appController = {
             <div id="table-container"></div>
         `;
         document.getElementById('page-content').innerHTML = html;
-        
         const books = JSON.parse(localStorage.getItem('lib_books')) || [];
         this.renderBooksTable(books);
     },
@@ -204,18 +193,14 @@ const appController = {
                     const btnHtml = isOutOfStock 
                         ? `<button class="btn-delete" disabled style="background:#95a5a6; cursor:not-allowed">Hết sách</button>`
                         : `<button class="btn-add" onclick="appController.reserveBook('${b.id}', '${b.name}')">Đặt mượn</button>`;
-                    
                     return `
                     <tr>
-                        <td>${b.id}</td>
-                        <td><b>${b.name}</b></td>
+                        <td>${b.id}</td><td><b>${b.name}</b></td>
                         <td><span class="badge category-badge">${b.category || 'Khác'}</span></td>
-                        <td>${b.author}</td>
-                        <td>${b.year || 'N/A'}</td>
+                        <td>${b.author}</td><td>${b.year || 'N/A'}</td>
                         <td><b style="color: ${isOutOfStock ? '#e74c3c' : '#27ae60'}">${isOutOfStock ? 'Sắp có' : 'Đang có'}</b> (${b.quantity} cuốn)</td>
                         <td>${btnHtml}</td>
-                    </tr>
-                `}).join('')}
+                    </tr>`}).join('')}
             </tbody>
         </table>`;
         document.getElementById('table-container').innerHTML = tableHtml;
@@ -225,13 +210,11 @@ const appController = {
         const searchText = document.getElementById("searchInput").value.toLowerCase();
         const selectedCategory = document.getElementById("categoryFilter").value;
         const allBooks = JSON.parse(localStorage.getItem('lib_books')) || [];
-        
         const filteredData = allBooks.filter(book => {
             const matchName = book.name.toLowerCase().includes(searchText);
             const matchCategory = selectedCategory === "all" || book.category === selectedCategory;
             return matchName && matchCategory;
         });
-        
         this.renderBooksTable(filteredData);
     },
 
@@ -240,23 +223,16 @@ const appController = {
         const reservations = JSON.parse(localStorage.getItem('lib_reservations')) || [];
         
         const isAlreadyReserved = reservations.some(r => r.userEmail === user.email && r.bookId === bookId && r.status === 'Đang chờ duyệt');
-        if (isAlreadyReserved) {
-            return alert("Bạn đã đặt mượn cuốn sách này rồi, vui lòng chờ Thủ thư duyệt!");
-        }
+        if (isAlreadyReserved) return alert("Bạn đã đặt mượn cuốn sách này rồi, vui lòng chờ Thủ thư duyệt!");
 
         reservations.push({
-            userEmail: user.email,
-            bookId: bookId,
-            bookName: bookName,
-            date: new Date().toLocaleDateString('vi-VN'),
-            status: 'Đang chờ duyệt'
+            userEmail: user.email, bookId: bookId, bookName: bookName,
+            date: new Date().toLocaleDateString('vi-VN'), status: 'Đang chờ duyệt'
         });
-        
         localStorage.setItem('lib_reservations', JSON.stringify(reservations));
         alert(`Bạn đã đặt mượn cuốn "${bookName}" thành công!\nVui lòng theo dõi trạng thái trong mục Thông tin cá nhân.`);
     },
 
-    // UC006: Sửa thông tin cá nhân (Độc giả)
     viewProfile() {
         document.getElementById('page-title').innerText = "Thông Tin Cá Nhân";
         const user = JSON.parse(sessionStorage.getItem('current_user'));
@@ -280,14 +256,9 @@ const appController = {
                 <tbody>
                     ${myReservations.length === 0 ? '<tr><td colspan="3" style="text-align:center">Bạn chưa mượn cuốn sách nào.</td></tr>' : ''}
                     ${myReservations.map(r => `
-                        <tr>
-                            <td><b>${r.bookName}</b></td>
-                            <td>${r.date}</td>
-                            <td>
-                                <b style="color: ${r.status === 'Đang chờ duyệt' ? '#f39c12' : (r.status === 'Đang mượn' ? '#3498db' : '#27ae60')}">${r.status}</b>
-                            </td>
-                        </tr>
-                    `).join('')}
+                        <tr><td><b>${r.bookName}</b></td><td>${r.date}</td>
+                            <td><b style="color: ${r.status === 'Đang chờ duyệt' ? '#f39c12' : (r.status === 'Đang mượn' ? '#3498db' : '#27ae60')}">${r.status}</b></td>
+                        </tr>`).join('')}
                 </tbody>
             </table>
         `;
@@ -322,29 +293,113 @@ const appController = {
         let index = users.findIndex(u => u.email === user.email);
 
         if (type === 'email') {
-            if (newVal !== user.email && users.some(u => u.email === newVal)) {
-                return alert("Lỗi: Email này đã có người sử dụng!");
-            }
-            user.email = newVal;
-            users[index].email = newVal;
+            if (newVal !== user.email && users.some(u => u.email === newVal)) return alert("Lỗi: Email này đã có người sử dụng!");
+            user.email = newVal; users[index].email = newVal;
         } else {
-            user.name = newVal;
-            users[index].name = newVal;
+            user.name = newVal; users[index].name = newVal;
         }
 
-        // Cập nhật Database và Session hiện tại
         localStorage.setItem('lib_users', JSON.stringify(users));
         sessionStorage.setItem('current_user', JSON.stringify(user));
-        
-        // Cập nhật Navbar hiển thị Tên
         document.getElementById('user-display').innerText = user.name; 
         alert("Cập nhật thông tin thành công!");
-        this.viewProfile(); // Trở lại màn hình profile
+        this.viewProfile(); 
     },
 
-    // ================= CHỨC NĂNG CỦA THỦ THƯ =================
+    // THỦ THƯ 
+    
+    //  THÔNG BÁO VÀ NHẮC NHỞ
+    viewNotifications() {
+        document.getElementById('page-title').innerText = "Thông Báo Và Nhắc Nhở";
+        let html = `
+            <div class="search-panel">
+                <input type="text" id="notifySearch" placeholder="🔍 Tìm kiếm mã mượn, tên độc giả..." onkeyup="appController.filterNotifications()" style="width:350px;">
+                <select id="statusFilter" onchange="appController.filterNotifications()">
+                    <option value="all">Tất cả tình trạng</option>
+                    <option value="Chưa trả">Chưa trả</option>
+                    <option value="Quá thời hạn">Quá thời hạn</option>
+                    <option value="Đã hoàn trả">Đã hoàn trả</option>
+                </select>
+            </div>
+            <div id="notify-table-container"></div>
+        `;
+        document.getElementById('page-content').innerHTML = html;
+        this.filterNotifications(); 
+    },
 
-    // Quản lý Loại sách (UC Bổ sung cho Thủ thư)
+    filterNotifications() {
+        const searchText = document.getElementById("notifySearch").value.toLowerCase();
+        const statusFilter = document.getElementById("statusFilter").value;
+        const reservations = JSON.parse(localStorage.getItem('lib_reservations')) || [];
+        const users = JSON.parse(localStorage.getItem('lib_users')) || [];
+
+
+        const activeRecords = reservations.map((r, i) => ({...r, originalIndex: i}))
+                                          .filter(r => r.status !== 'Đang chờ duyệt');
+
+        const filtered = activeRecords.filter(r => {
+            const u = users.find(user => user.email === r.userEmail) || {};
+            const code = `M${String(r.originalIndex + 1).padStart(3, '0')}`.toLowerCase();
+            const nameMatch = (u.name || '').toLowerCase().includes(searchText) || code.includes(searchText);
+
+            let borrowDate = new Date();
+            if(r.date.includes('/')) {
+                const [day, month, year] = r.date.split('/');
+                borrowDate = new Date(year, month - 1, day);
+            } else {
+                borrowDate = new Date(r.date);
+            }
+            let dueDate = new Date(borrowDate);
+            dueDate.setDate(dueDate.getDate() + 14); 
+
+            let currentStatus = 'Chưa trả';
+            if (r.status === 'Đã trả') currentStatus = 'Đã hoàn trả';
+            else if (new Date() > dueDate) currentStatus = 'Quá thời hạn';
+
+            r.computedStatus = currentStatus; 
+            r.computedDueDate = dueDate.toLocaleDateString('vi-VN');
+
+            const statusMatch = statusFilter === 'all' || currentStatus === statusFilter;
+            return nameMatch && statusMatch;
+        });
+
+        this.renderNotifyTable(filtered);
+    },
+
+    renderNotifyTable(data) {
+        const users = JSON.parse(localStorage.getItem('lib_users')) || [];
+        const books = JSON.parse(localStorage.getItem('lib_books')) || [];
+        
+        let tableHtml = `<table>
+            <thead><tr><th>Mã mượn</th><th>Họ tên</th><th>Tên sách</th><th>Loại sách</th><th>Tình trạng</th><th>Ngày mượn</th><th>Hạn trả</th></tr></thead>
+            <tbody>
+                ${data.length === 0 ? '<tr><td colspan="7" style="text-align:center">Không có dữ liệu phù hợp.</td></tr>' : ''}
+                ${data.map(r => {
+                    const u = users.find(user => user.email === r.userEmail) || {};
+                    const b = books.find(book => book.id === r.bookId) || {};
+                    
+                    let statusColor = '#f39c12'; // Vàng cam (Chưa trả)
+                    if (r.computedStatus === 'Đã hoàn trả') statusColor = '#27ae60'; // Xanh lá
+                    else if (r.computedStatus === 'Quá thời hạn') statusColor = '#e74c3c'; // Đỏ phạt
+
+                    return `
+                    <tr>
+                        <td><b>M${String(r.originalIndex + 1).padStart(3, '0')}</b></td>
+                        <td>${u.name || r.userEmail}</td>
+                        <td>${r.bookName}</td>
+                        <td><span class="badge category-badge">${b.category || 'Khác'}</span></td>
+                        <td><b style="color: ${statusColor}">${r.computedStatus}</b></td>
+                        <td>${r.date}</td>
+                        <td>${r.computedDueDate}</td>
+                    </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>`;
+        document.getElementById('notify-table-container').innerHTML = tableHtml;
+    },
+
+
     manageCategories() {
         document.getElementById('page-title').innerText = "Quản Lý Loại Sách";
         let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
@@ -360,13 +415,7 @@ const appController = {
             <table>
                 <thead><tr><th>STT</th><th>Tên loại sách</th><th>Thao tác</th></tr></thead>
                 <tbody>
-                    ${categories.map((c, i) => `
-                        <tr>
-                            <td>${i + 1}</td>
-                            <td><b>${c}</b></td>
-                            <td><button class="btn-delete" onclick="appController.deleteCategory('${c}')">Xóa</button></td>
-                        </tr>
-                    `).join('')}
+                    ${categories.map((c, i) => `<tr><td>${i + 1}</td><td><b>${c}</b></td><td><button class="btn-delete" onclick="appController.deleteCategory('${c}')">Xóa</button></td></tr>`).join('')}
                 </tbody>
             </table>
         `;
@@ -377,62 +426,46 @@ const appController = {
         let cat = document.getElementById('new-category').value.trim();
         if(!cat) return alert("Vui lòng nhập tên loại sách!");
         let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
-        if(categories.includes(cat)) return alert("Loại sách này đã tồn tại trong hệ thống!");
+        if(categories.includes(cat)) return alert("Loại sách này đã tồn tại!");
         
         categories.push(cat);
         localStorage.setItem('lib_categories', JSON.stringify(categories));
-        this.manageCategories(); // Tải lại trang
+        this.manageCategories();
     },
 
     deleteCategory(cat) {
-        if(!confirm(`Bạn có chắc chắn muốn xóa thể loại: ${cat}? Các sách thuộc thể loại này vẫn sẽ giữ nguyên.`)) return;
+        if(!confirm(`Bạn có chắc chắn muốn xóa thể loại: ${cat}?`)) return;
         let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
         categories = categories.filter(c => c !== cat);
         localStorage.setItem('lib_categories', JSON.stringify(categories));
         this.manageCategories();
     },
 
-    // Quản lý Kho sách
     manageBooks() {
         document.getElementById('page-title').innerText = "Quản Lý Kho Sách";
         const books = JSON.parse(localStorage.getItem('lib_books')) || [];
-        
         let html = `
             <div class="form-panel">
                 <h3 id="form-title">Thêm sách mới</h3>
                 <input type="hidden" id="edit-book-id" value="">
-                
                 <div class="input-group">
                     <input type="text" id="book-name" placeholder="Tên sách (*)">
                     <input type="text" id="book-author" placeholder="Tác giả (*)">
                     <input type="number" id="book-qty" placeholder="Số lượng (*)" min="0">
                 </div>
                 <div class="input-group">
-                    <select id="book-category">
-                        ${this.getCategoryOptions(false)}
-                    </select>
+                    <select id="book-category">${this.getCategoryOptions(false)}</select>
                     <input type="number" id="book-year" placeholder="Năm xuất bản">
                 </div>
                 <button class="btn-add" id="btn-save" onclick="appController.saveBook()">Lưu Sách</button>
                 <button class="btn-secondary hidden" id="btn-cancel" onclick="appController.manageBooks()">Hủy bỏ</button>
             </div>
-
             <table>
                 <thead><tr><th>Mã</th><th>Tên sách</th><th>Thể loại</th><th>Tác giả</th><th>Số lượng</th><th>Thao tác</th></tr></thead>
                 <tbody>
-                    ${books.map(b => `
-                        <tr>
-                            <td>${b.id}</td>
-                            <td><b>${b.name}</b></td>
-                            <td><span class="badge category-badge">${b.category || 'Khác'}</span></td>
-                            <td>${b.author}</td>
-                            <td><b>${b.quantity}</b></td>
-                            <td>
-                                <button class="btn-warning" onclick="appController.editBook('${b.id}')">Sửa</button>
-                                <button class="btn-delete" onclick="appController.deleteBook('${b.id}')">Xóa</button>
-                            </td>
-                        </tr>
-                    `).join('')}
+                    ${books.map(b => `<tr><td>${b.id}</td><td><b>${b.name}</b></td><td><span class="badge category-badge">${b.category || 'Khác'}</span></td>
+                        <td>${b.author}</td><td><b>${b.quantity}</b></td>
+                        <td><button class="btn-warning" onclick="appController.editBook('${b.id}')">Sửa</button> <button class="btn-delete" onclick="appController.deleteBook('${b.id}')">Xóa</button></td></tr>`).join('')}
                 </tbody>
             </table>
         `;
@@ -448,21 +481,17 @@ const appController = {
         const year = document.getElementById('book-year').value;
 
         if (!name || !author || isNaN(quantity)) return alert("Vui lòng điền đầy đủ các trường bắt buộc (*)");
-
         let books = JSON.parse(localStorage.getItem('lib_books')) || [];
 
         if (idInput) {
             const index = books.findIndex(b => b.id === idInput);
-            if (index !== -1) {
-                books[index] = { ...books[index], name, author, quantity, category, year, status: quantity > 0 ? 'Đang có' : 'Sắp có' };
-            }
+            if (index !== -1) books[index] = { ...books[index], name, author, quantity, category, year, status: quantity > 0 ? 'Đang có' : 'Sắp có' };
             alert("Cập nhật sách thành công!");
         } else {
             const newId = 'S' + String(Date.now()).slice(-4); 
             books.push({ id: newId, name, author, quantity, category, year, status: quantity > 0 ? 'Đang có' : 'Sắp có' });
             alert("Thêm sách mới thành công!");
         }
-
         localStorage.setItem('lib_books', JSON.stringify(books));
         this.manageBooks(); 
     },
@@ -498,28 +527,24 @@ const appController = {
         const reservations = JSON.parse(localStorage.getItem('lib_reservations')) || [];
         
         let html = `<table>
-            <thead><tr><th>Email Độc giả</th><th>Sách muốn mượn</th><th>Ngày đặt</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <thead><tr><th>Mã mượn</th><th>Email Độc giả</th><th>Sách muốn mượn</th><th>Ngày đặt</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
             <tbody>
-                ${reservations.length === 0 ? '<tr><td colspan="5" style="text-align:center">Chưa có yêu cầu mượn sách nào.</td></tr>' : ''}
+                ${reservations.length === 0 ? '<tr><td colspan="6" style="text-align:center">Chưa có yêu cầu mượn sách nào.</td></tr>' : ''}
                 ${reservations.map((r, idx) => {
                     let actionBtn = '';
-                    if (r.status === 'Đang chờ duyệt') {
-                        actionBtn = `<button class="btn-add" onclick="appController.approveReservation(${idx})">Duyệt mượn</button>`;
-                    } else if (r.status === 'Đang mượn') {
-                        actionBtn = `<button class="btn-secondary" onclick="appController.returnBook(${idx})">Nhận trả sách</button>`;
-                    } else {
-                        actionBtn = `<span style="color: #7f8c8d; font-weight:bold;">Đã hoàn thành</span>`;
-                    }
+                    if (r.status === 'Đang chờ duyệt') actionBtn = `<button class="btn-add" onclick="appController.approveReservation(${idx})">Duyệt mượn</button>`;
+                    else if (r.status === 'Đang mượn') actionBtn = `<button class="btn-secondary" onclick="appController.returnBook(${idx})">Nhận trả sách</button>`;
+                    else actionBtn = `<span style="color: #7f8c8d; font-weight:bold;">Đã hoàn thành</span>`;
 
                     return `
                     <tr>
+                        <td><b>M${String(idx + 1).padStart(3, '0')}</b></td>
                         <td><b>${r.userEmail}</b></td>
                         <td>${r.bookName}</td>
                         <td>${r.date}</td>
                         <td><b style="color: ${r.status === 'Đang chờ duyệt' ? '#f39c12' : (r.status === 'Đang mượn' ? '#3498db' : '#27ae60')}">${r.status}</b></td>
                         <td>${actionBtn}</td>
-                    </tr>
-                    `;
+                    </tr>`;
                 }).join('')}
             </tbody>
         </table>`;
@@ -533,14 +558,14 @@ const appController = {
         let bookIndex = books.findIndex(b => b.id === req.bookId);
 
         if (bookIndex !== -1) {
-            if (books[bookIndex].quantity <= 0) {
-                return alert("Trong kho đã hết cuốn sách này, không thể duyệt!");
-            }
+            if (books[bookIndex].quantity <= 0) return alert("Trong kho đã hết cuốn sách này, không thể duyệt!");
             books[bookIndex].quantity -= 1;
             localStorage.setItem('lib_books', JSON.stringify(books));
         }
 
         reservations[index].status = 'Đang mượn';
+        // Reset lại ngày đặt thành ngày hiện tại để làm mốc tính 14 ngày hạn trả
+        reservations[index].date = new Date().toLocaleDateString('vi-VN'); 
         localStorage.setItem('lib_reservations', JSON.stringify(reservations));
         alert("Đã duyệt yêu cầu mượn sách thành công!");
         this.manageReaders(); 
@@ -563,11 +588,10 @@ const appController = {
         this.manageReaders();
     },
 
-    // ================= CHỨC NĂNG CỦA ADMIN =================
+    // ADMIN 
     manageUsers() {
         document.getElementById('page-title').innerText = "Quản Lý Tài Khoản";
         const users = JSON.parse(localStorage.getItem('lib_users')) || [];
-        
         let html = `
             <div class="form-panel">
                 <h3 id="user-form-title" style="color: var(--primary); margin-top: 0; margin-bottom: 15px;">Thêm tài khoản mới</h3>
@@ -588,21 +612,16 @@ const appController = {
                 <button class="btn-add" id="btn-save-user" onclick="appController.saveUser()">Lưu Tài Khoản</button>
                 <button class="btn-secondary hidden" id="btn-cancel-user" onclick="appController.manageUsers()">Hủy bỏ</button>
             </div>
-
             <table>
                 <thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Thao tác</th></tr></thead>
                 <tbody>
                     ${users.map((u, idx) => `
-                        <tr>
-                            <td><b>${u.name}</b></td>
-                            <td>${u.email}</td>
-                            <td><span class="badge" style="background:#e8f4f8; color:#3498db;">${u.role}</span></td>
+                        <tr><td><b>${u.name}</b></td><td>${u.email}</td><td><span class="badge" style="background:#e8f4f8; color:#3498db;">${u.role}</span></td>
                             <td>
                                 <button class="btn-warning" onclick="appController.editUser('${u.email}')">Sửa</button>
                                 ${u.role !== 'ADMIN' ? `<button class="btn-delete" onclick="appController.deleteUser('${u.email}')">Xóa</button>` : '<span style="color:#95a5a6; font-weight:bold; margin-left:10px">Bảo vệ</span>'}
                             </td>
-                        </tr>
-                    `).join('')}
+                        </tr>`).join('')}
                 </tbody>
             </table>
         `;
@@ -618,22 +637,17 @@ const appController = {
         const role = document.getElementById('user-role').value;
 
         if (!name || !email || !password) return alert("Vui lòng điền đầy đủ các trường bắt buộc (*)");
-
         let users = JSON.parse(localStorage.getItem('lib_users')) || [];
 
         if (oldEmail) {
             const index = users.findIndex(u => u.email === oldEmail);
             if (index !== -1) {
-                if (email !== oldEmail && users.some(u => u.email === email)) {
-                    return alert("Lỗi: Email / Tên đăng nhập mới đã tồn tại trong hệ thống!");
-                }
+                if (email !== oldEmail && users.some(u => u.email === email)) return alert("Lỗi: Email / Tên đăng nhập mới đã tồn tại!");
                 users[index] = { ...users[index], name, email, phone, password, role };
                 alert("Cập nhật thông tin tài khoản thành công!");
             }
         } else {
-            if (users.some(u => u.email === email)) {
-                return alert("Lỗi: Email / Tên đăng nhập đã tồn tại trong hệ thống!");
-            }
+            if (users.some(u => u.email === email)) return alert("Lỗi: Email / Tên đăng nhập đã tồn tại trong hệ thống!");
             users.push({ name, email, phone, password, role });
             alert("Thêm tài khoản mới thành công!");
         }
@@ -653,12 +667,10 @@ const appController = {
         document.getElementById('user-phone').value = user.phone || '';
         document.getElementById('user-password').value = user.password;
         document.getElementById('user-role').value = user.role;
-
         document.getElementById('user-form-title').innerText = `Chỉnh sửa tài khoản: ${user.name}`;
         document.getElementById('btn-save-user').innerText = "Cập nhật";
         document.getElementById('btn-save-user').style.backgroundColor = "#f39c12"; 
         document.getElementById('btn-cancel-user').classList.remove('hidden');
-
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
@@ -672,52 +684,32 @@ const appController = {
 
     viewStats() {
         document.getElementById('page-title').innerText = "Thống Kê Hoạt Động Thư Viện";
-        
         const stats = typeof Database !== 'undefined' ? Database.getStats() : (JSON.parse(localStorage.getItem('lib_stats')) || []);
         
         let totalBorrowed = 0, totalFines = 0, totalImportCost = 0;
         stats.forEach(s => {
             totalBorrowed += s.borrowed; totalFines += s.fine; totalImportCost += s.importCost;
         });
-
         const formatMoney = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
         let html = `
             <div class="stat-grid">
-                <div class="stat-card" style="border-top-color: #3498db">
-                    <span class="stat-title">📚 Tổng sách đã mượn</span>
-                    <span class="stat-value" style="color: #3498db">${totalBorrowed} cuốn</span>
-                </div>
-                <div class="stat-card" style="border-top-color: #f39c12">
-                    <span class="stat-title">💰 Tổng thu tiền phạt</span>
-                    <span class="stat-value" style="color: #f39c12">${formatMoney(totalFines)}</span>
-                </div>
-                <div class="stat-card" style="border-top-color: #e74c3c">
-                    <span class="stat-title">📉 Tổng chi nhập sách</span>
-                    <span class="stat-value" style="color: #e74c3c">${formatMoney(totalImportCost)}</span>
-                </div>
+                <div class="stat-card" style="border-top-color: #3498db"><span class="stat-title">📚 Tổng sách đã mượn</span><span class="stat-value" style="color: #3498db">${totalBorrowed} cuốn</span></div>
+                <div class="stat-card" style="border-top-color: #f39c12"><span class="stat-title">💰 Tổng thu tiền phạt</span><span class="stat-value" style="color: #f39c12">${formatMoney(totalFines)}</span></div>
+                <div class="stat-card" style="border-top-color: #e74c3c"><span class="stat-title">📉 Tổng chi nhập sách</span><span class="stat-value" style="color: #e74c3c">${formatMoney(totalImportCost)}</span></div>
             </div>
-
             <div class="form-panel" style="margin-top: 20px; border-left: none;">
                 <h3 style="color: #2c3e50; margin-top: 0; margin-bottom: 15px;">Báo cáo chi tiết theo tháng</h3>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Tháng</th><th>Đã mượn</th><th>Đã trả</th><th>Hư hỏng</th><th>Tiền phạt</th><th>Mua mới</th><th>Chi phí nhập</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Tháng</th><th>Đã mượn</th><th>Đã trả</th><th>Hư hỏng</th><th>Tiền phạt</th><th>Mua mới</th><th>Chi phí nhập</th></tr></thead>
                     <tbody>
                         ${stats.map(s => `
-                            <tr>
-                                <td><b>${s.month}</b></td>
+                            <tr><td><b>${s.month}</b></td>
                                 <td><span class="badge" style="background:#e8f4f8; color:#3498db">${s.borrowed}</span></td>
                                 <td><span class="badge" style="background:#e8f8f5; color:#27ae60">${s.returned}</span></td>
                                 <td><b style="color: #e74c3c">${s.damaged}</b></td>
-                                <td>${formatMoney(s.fine)}</td>
-                                <td>${s.newBought}</td>
-                                <td>${formatMoney(s.importCost)}</td>
-                            </tr>
-                        `).join('')}
+                                <td>${formatMoney(s.fine)}</td><td>${s.newBought}</td><td>${formatMoney(s.importCost)}</td>
+                            </tr>`).join('')}
                     </tbody>
                 </table>
             </div>
@@ -727,7 +719,5 @@ const appController = {
 }; 
 
 window.onload = () => {
-    if(sessionStorage.getItem('current_user')) {
-        appController.renderApp();
-    }
+    if(sessionStorage.getItem('current_user')) appController.renderApp();
 };
