@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Quản Lý Thư Viện</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="logo.svg" type="image/svg+xml">
 </head>
 <body>
     <div id="auth-view" class="auth-box">
@@ -44,8 +45,11 @@
     </div>
 
     <div id="app-view" class="hidden">
-        <nav class="navbar">
-            <span class="brand">📚 LibManager Pro</span>
+    <nav class="navbar">
+            <span class="brand"> 
+                <img src="logo.svg" alt="Logo" style="height: 25px; margin-right: 8px; vertical-align: middle;"> 
+                LibManager Web
+            </span>
             <div class="user-profile">
                 Xin chào, <b id="user-display"></b> | Vai trò: <span id="role-display"></span>
                 <button class="btn-logout" onclick="authController.logout()">Thoát</button>
