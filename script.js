@@ -1,6 +1,14 @@
+// ==========================================
+// KHỞI TẠO DỮ LIỆU ĐỘNG (BỔ SUNG THỂ LOẠI)
+// ==========================================
+if (!localStorage.getItem('lib_categories')) {
+    const defaultCategories = ['Toán cao cấp', 'Lập trình', 'Vật lý', 'Tâm lý', 'Văn học', 'Khác'];
+    localStorage.setItem('lib_categories', JSON.stringify(defaultCategories));
+}
 
-// ĐĂNG NHẬP, ĐĂNG KÝ, QUÊN MK
-
+// ==========================================
+// XỬ LÝ XÁC THỰC (ĐĂNG NHẬP, ĐĂNG KÝ, QUÊN MK)
+// ==========================================
 const authController = {
     toggleForm(formType) {
         document.getElementById('login-form').classList.toggle('hidden', formType !== 'login');
@@ -60,9 +68,9 @@ const authController = {
     }
 };
 
-
-//CHỨC NĂNG CHÍNH CỦA APP
-
+// ==========================================
+// ĐIỀU KHIỂN NGHIỆP VỤ (CHỨC NĂNG CHÍNH CỦA APP)
+// ==========================================
 const appController = {
     renderApp() {
         const user = JSON.parse(sessionStorage.getItem('current_user'));
@@ -83,14 +91,29 @@ const appController = {
         const menu = document.getElementById('menu-list');
         let items = [];
 
+        // Đã bổ sung UC004: Đổi mật khẩu cho TẤT CẢ các Role
+        // Đã bổ sung UC01X: Quản lý loại sách cho Thủ thư
         if (role === 'READER') {
-            items = [['🏠 Trang chủ (Xem Sách)', 'viewBooks'], ['👤 Thông tin cá nhân', 'viewProfile']];
+            items = [
+                ['🏠 Trang chủ (Xem Sách)', 'viewBooks'], 
+                ['👤 Thông tin cá nhân', 'viewProfile'], 
+                ['🔒 Đổi mật khẩu', 'changePassword']
+            ];
             this.viewBooks();
         } else if (role === 'LIBRARIAN') {
-            items = [['📚 Quản lý kho sách', 'manageBooks'], ['👥 Duyệt mượn sách', 'manageReaders']];
+            items = [
+                ['🏷️ Quản lý loại sách', 'manageCategories'], 
+                ['📚 Quản lý kho sách', 'manageBooks'], 
+                ['👥 Duyệt mượn sách', 'manageReaders'], 
+                ['🔒 Đổi mật khẩu', 'changePassword']
+            ];
             this.manageBooks();
         } else if (role === 'ADMIN') {
-            items = [['🛡️ Quản lý tài khoản', 'manageUsers'], ['📊 Thống kê', 'viewStats']];
+            items = [
+                ['🛡️ Quản lý tài khoản', 'manageUsers'], 
+                ['📊 Thống kê', 'viewStats'], 
+                ['🔒 Đổi mật khẩu', 'changePassword']
+            ];
             this.manageUsers();
         }
 
@@ -98,6 +121,60 @@ const appController = {
             <li onclick="appController['${item[1]}']()"><span>${item[0]}</span></li>
         `).join('');
     },
+
+    // HÀM HỖ TRỢ: Lấy danh sách thể loại sách từ LocalStorage
+    getCategoryOptions(showAllOption = false) {
+        let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
+        let html = showAllOption ? '<option value="all">Tất cả thể loại</option>' : '';
+        categories.forEach(c => html += `<option value="${c}">${c}</option>`);
+        return html;
+    },
+
+    // ================= CHỨC NĂNG DÙNG CHUNG =================
+
+    // UC004: Thay đổi mật khẩu
+    changePassword() {
+        document.getElementById('page-title').innerText = "Thay Đổi Mật Khẩu";
+        let html = `
+            <div class="form-panel" style="max-width: 500px;">
+                <div class="input-group" style="flex-direction: column;">
+                    <input type="password" id="old-pass" placeholder="Nhập mật khẩu cũ (*)">
+                    <input type="password" id="new-pass" placeholder="Nhập mật khẩu mới (*)">
+                    <input type="password" id="confirm-pass" placeholder="Nhập lại mật khẩu mới (*)">
+                </div>
+                <button class="btn-add" style="width: 100%; margin-top: 10px;" onclick="appController.submitChangePassword()">Xác nhận đổi mật khẩu</button>
+            </div>
+        `;
+        document.getElementById('page-content').innerHTML = html;
+    },
+
+    submitChangePassword() {
+        let oldP = document.getElementById('old-pass').value;
+        let newP = document.getElementById('new-pass').value;
+        let confP = document.getElementById('confirm-pass').value;
+
+        if(!oldP || !newP || !confP) return alert("Vui lòng nhập đầy đủ thông tin!");
+        if(newP !== confP) return alert("Lỗi: Mật khẩu mới và phần Nhập lại không khớp nhau!");
+
+        let user = JSON.parse(sessionStorage.getItem('current_user'));
+        let users = JSON.parse(localStorage.getItem('lib_users')) || [];
+        let index = users.findIndex(u => u.email === user.email);
+
+        if(users[index].password !== oldP) {
+            return alert("Lỗi: Mật khẩu cũ không chính xác!");
+        }
+
+        users[index].password = newP;
+        user.password = newP;
+        localStorage.setItem('lib_users', JSON.stringify(users));
+        sessionStorage.setItem('current_user', JSON.stringify(user));
+
+        alert("Thay đổi mật khẩu thành công!");
+        document.getElementById('old-pass').value = '';
+        document.getElementById('new-pass').value = '';
+        document.getElementById('confirm-pass').value = '';
+    },
+
 
     // ================= CHỨC NĂNG CỦA ĐỘC GIẢ =================
     viewBooks() {
@@ -107,11 +184,7 @@ const appController = {
             <div class="search-panel">
                 <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tên sách..." onkeyup="appController.filterBooks()">
                 <select id="categoryFilter" onchange="appController.filterBooks()">
-                    <option value="all">Tất cả thể loại</option>
-                    <option value="Toán cao cấp">Toán cao cấp</option>
-                    <option value="Lập trình">Lập trình</option>
-                    <option value="Vật lý">Vật lý</option>
-                    <option value="Tâm lý">Tâm lý</option>
+                    ${this.getCategoryOptions(true)}
                 </select>
             </div>
             <div id="table-container"></div>
@@ -183,6 +256,7 @@ const appController = {
         alert(`Bạn đã đặt mượn cuốn "${bookName}" thành công!\nVui lòng theo dõi trạng thái trong mục Thông tin cá nhân.`);
     },
 
+    // UC006: Sửa thông tin cá nhân (Độc giả)
     viewProfile() {
         document.getElementById('page-title').innerText = "Thông Tin Cá Nhân";
         const user = JSON.parse(sessionStorage.getItem('current_user'));
@@ -190,11 +264,16 @@ const appController = {
         const myReservations = reservations.filter(r => r.userEmail === user.email);
 
         let html = `
-            <div class="form-panel" style="border-left: 5px solid #3498db;">
-                <p><b>Họ và tên:</b> <span>${user.name}</span></p>
-                <p><b>Email / Tên đăng nhập:</b> <span>${user.email}</span></p>
-                <p><b>Trạng thái:</b> <span class="badge" style="color:#27ae60; background:#e8f8f5">Đang hoạt động</span></p>
+            <div class="form-panel" style="border-left: 5px solid #3498db; position: relative;">
+                <p style="font-size: 16px; margin-bottom: 10px;"><b>Họ và tên:</b> <span>${user.name}</span> 
+                    <button class="btn-warning" style="padding: 4px 8px; margin-left: 15px; font-size: 12px;" onclick="appController.showEditProfile('name')">Sửa Tên</button>
+                </p>
+                <p style="font-size: 16px; margin-bottom: 10px;"><b>Email đăng nhập:</b> <span>${user.email}</span>
+                    <button class="btn-warning" style="padding: 4px 8px; margin-left: 15px; font-size: 12px;" onclick="appController.showEditProfile('email')">Sửa Email</button>
+                </p>
+                <p style="font-size: 16px;"><b>Trạng thái:</b> <span class="badge" style="color:#27ae60; background:#e8f8f5">Đang hoạt động</span></p>
             </div>
+            
             <h3 style="margin-bottom:15px; color: #2c3e50;">Lịch sử mượn sách của bạn</h3>
             <table>
                 <thead><tr><th>Tên sách</th><th>Ngày đặt</th><th>Trạng thái</th></tr></thead>
@@ -215,7 +294,105 @@ const appController = {
         document.getElementById('page-content').innerHTML = html;
     },
 
+    showEditProfile(type) {
+        const user = JSON.parse(sessionStorage.getItem('current_user'));
+        let title = type === 'name' ? 'Sửa Họ và Tên' : 'Sửa Email';
+        let placeholder = type === 'name' ? 'Nhập tên mới...' : 'Nhập email mới...';
+        let currentValue = type === 'name' ? user.name : user.email;
+
+        let html = `
+            <div class="form-panel" style="max-width: 500px;">
+                <h3>${title}</h3>
+                <div class="input-group">
+                    <input type="text" id="edit-profile-input" value="${currentValue}" placeholder="${placeholder}">
+                </div>
+                <button class="btn-add" onclick="appController.submitEditProfile('${type}')">Lưu Thay Đổi</button>
+                <button class="btn-secondary" onclick="appController.viewProfile()">Hủy bỏ</button>
+            </div>
+        `;
+        document.getElementById('page-content').innerHTML = html;
+    },
+
+    submitEditProfile(type) {
+        let newVal = document.getElementById('edit-profile-input').value.trim();
+        if(!newVal) return alert("Dữ liệu không được để trống!");
+        
+        let user = JSON.parse(sessionStorage.getItem('current_user'));
+        let users = JSON.parse(localStorage.getItem('lib_users')) || [];
+        let index = users.findIndex(u => u.email === user.email);
+
+        if (type === 'email') {
+            if (newVal !== user.email && users.some(u => u.email === newVal)) {
+                return alert("Lỗi: Email này đã có người sử dụng!");
+            }
+            user.email = newVal;
+            users[index].email = newVal;
+        } else {
+            user.name = newVal;
+            users[index].name = newVal;
+        }
+
+        // Cập nhật Database và Session hiện tại
+        localStorage.setItem('lib_users', JSON.stringify(users));
+        sessionStorage.setItem('current_user', JSON.stringify(user));
+        
+        // Cập nhật Navbar hiển thị Tên
+        document.getElementById('user-display').innerText = user.name; 
+        alert("Cập nhật thông tin thành công!");
+        this.viewProfile(); // Trở lại màn hình profile
+    },
+
     // ================= CHỨC NĂNG CỦA THỦ THƯ =================
+
+    // Quản lý Loại sách (UC Bổ sung cho Thủ thư)
+    manageCategories() {
+        document.getElementById('page-title').innerText = "Quản Lý Loại Sách";
+        let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
+        
+        let html = `
+            <div class="form-panel">
+                <h3>Thêm loại sách mới</h3>
+                <div class="input-group" style="max-width: 600px;">
+                    <input type="text" id="new-category" placeholder="Nhập tên thể loại sách mới (VD: Khoa học viễn tưởng)...">
+                    <button class="btn-add" style="flex: 0.3;" onclick="appController.addCategory()">+ Thêm</button>
+                </div>
+            </div>
+            <table>
+                <thead><tr><th>STT</th><th>Tên loại sách</th><th>Thao tác</th></tr></thead>
+                <tbody>
+                    ${categories.map((c, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td><b>${c}</b></td>
+                            <td><button class="btn-delete" onclick="appController.deleteCategory('${c}')">Xóa</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('page-content').innerHTML = html;
+    },
+
+    addCategory() {
+        let cat = document.getElementById('new-category').value.trim();
+        if(!cat) return alert("Vui lòng nhập tên loại sách!");
+        let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
+        if(categories.includes(cat)) return alert("Loại sách này đã tồn tại trong hệ thống!");
+        
+        categories.push(cat);
+        localStorage.setItem('lib_categories', JSON.stringify(categories));
+        this.manageCategories(); // Tải lại trang
+    },
+
+    deleteCategory(cat) {
+        if(!confirm(`Bạn có chắc chắn muốn xóa thể loại: ${cat}? Các sách thuộc thể loại này vẫn sẽ giữ nguyên.`)) return;
+        let categories = JSON.parse(localStorage.getItem('lib_categories')) || [];
+        categories = categories.filter(c => c !== cat);
+        localStorage.setItem('lib_categories', JSON.stringify(categories));
+        this.manageCategories();
+    },
+
+    // Quản lý Kho sách
     manageBooks() {
         document.getElementById('page-title').innerText = "Quản Lý Kho Sách";
         const books = JSON.parse(localStorage.getItem('lib_books')) || [];
@@ -232,11 +409,7 @@ const appController = {
                 </div>
                 <div class="input-group">
                     <select id="book-category">
-                        <option value="Toán cao cấp">Toán cao cấp</option>
-                        <option value="Lập trình">Lập trình</option>
-                        <option value="Vật lý">Vật lý</option>
-                        <option value="Tâm lý">Tâm lý</option>
-                        <option value="Khác">Khác</option>
+                        ${this.getCategoryOptions(false)}
                     </select>
                     <input type="number" id="book-year" placeholder="Năm xuất bản">
                 </div>
@@ -398,9 +571,7 @@ const appController = {
         let html = `
             <div class="form-panel">
                 <h3 id="user-form-title" style="color: var(--primary); margin-top: 0; margin-bottom: 15px;">Thêm tài khoản mới</h3>
-                
                 <input type="hidden" id="edit-user-email-old" value="">
-                
                 <div class="input-group">
                     <input type="text" id="user-name" placeholder="Họ và tên (*)">
                     <input type="email" id="user-email" placeholder="Email / Tên đăng nhập (*)">
