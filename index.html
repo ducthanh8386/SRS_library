@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Thư Viện</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="auth-view" class="auth-box">
+        
+        <div id="login-form">
+            <h2>ĐĂNG NHẬP</h2>
+            <input type="text" id="login-email" placeholder="Email / Tên đăng nhập">
+            <input type="password" id="login-pass" placeholder="Mật khẩu">
+            <button onclick="authController.login()">Đăng nhập</button>
+            <p>
+                <a href="#" onclick="authController.toggleForm('forgot')">Quên mật khẩu?</a> | 
+                <a href="#" onclick="authController.toggleForm('register')">Đăng ký ngay</a>
+            </p>
+        </div>
+
+        <div id="register-form" class="hidden">
+            <h2>ĐĂNG KÝ TÀI KHOẢN</h2>
+            <input type="text" id="reg-name" placeholder="Họ và tên">
+            <input type="text" id="reg-email" placeholder="Email / Tên đăng nhập">
+            <input type="password" id="reg-pass" placeholder="Mật khẩu">
+            <select id="reg-role">
+                <option value="READER">Độc giả (Tự do)</option>
+                <option value="LIBRARIAN">Thủ thư (Cần có từ 'thuvien')</option>
+            </select>
+            <button onclick="authController.register()">Đăng ký</button>
+            <p><a href="#" onclick="authController.toggleForm('login')">⬅ Trở lại Đăng nhập</a></p>
+        </div>
+
+        <div id="forgot-form" class="hidden">
+            <h2>QUÊN MẬT KHẨU</h2>
+            <p style="font-size: 13px; color: #666;">Nhập email của bạn để lấy lại mật khẩu</p>
+            <input type="email" id="forgot-email" placeholder="Nhập Email đã đăng ký...">
+            <button onclick="authController.recoverPassword()">Lấy lại mật khẩu</button>
+            <p><a href="#" onclick="authController.toggleForm('login')">⬅ Trở lại Đăng nhập</a></p>
+        </div>
+
+    </div>
+
+    <div id="app-view" class="hidden">
+        <nav class="navbar">
+            <span class="brand">📚 LibManager Pro</span>
+            <div class="user-profile">
+                Xin chào, <b id="user-display"></b> | Vai trò: <span id="role-display"></span>
+                <button class="btn-logout" onclick="authController.logout()">Thoát</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <aside class="sidebar">
+                <ul id="menu-list">
+                    </ul>
+            </aside>
+
+            <main class="content">
+                <h2 id="page-title">Bảng điều khiển</h2>
+                <div id="page-content">
+                    </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
