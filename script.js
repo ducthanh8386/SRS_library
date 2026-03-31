@@ -32,7 +32,7 @@ const authController = {
         const role = document.getElementById('reg-role').value;
 
         if (!name || !email || !pass) return alert("Vui lòng điền đầy đủ thông tin!");
-        if (role === 'LIBRARIAN' && !/thuvien/i.test(email)) return alert("Tài khoản Thủ thư phải chứa từ khóa 'thuvien'!");
+        if (role === 'LIBRARIAN' && !/thuvienpka/i.test(email)) return alert("Tài khoản Thủ thư phải chứa từ khóa 'thuvienpka'!");
 
         const users = JSON.parse(localStorage.getItem('lib_users')) || [];
         if (users.some(u => u.email === email)) return alert("Tài khoản (Email) đã tồn tại!");
